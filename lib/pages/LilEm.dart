@@ -1,323 +1,209 @@
 import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
-class LilEmPage extends StatelessWidget {
+class LilEmPage extends StatefulWidget {
   const LilEmPage({Key? key}) : super(key: key);
 
   @override
-  Widget build(BuildContext context) {
-    return Center(child: Text('Lil\' Em'));
-  }
+  State<LilEmPage> createState() => _LilEmPageState();
 }
 
-class CohereChatPage extends StatefulWidget {
-  @override
-  _CohereChatPageState createState() => _CohereChatPageState();
-}
-
-class _CohereChatPageState extends State<CohereChatPage> {
-  final TextEditingController _controller = TextEditingController();
-  String responseText = "";
-
-  Future<void> sendMessage(String message) async {
-    const apiKey = "COHERE_API_KEY";
-    final url = Uri.parse("COHERE_BASE_URL");
-
-    final res = await http.post(
-      url,
-      headers: {
-        "Authorization": "Bearer $apiKey",
-        "Content-Type": "application/json",
-      },
-      body: jsonEncode({
-        "model": "command-r-plus",
-        "message": message,
-      }),
-    );
-
-    if (res.statusCode == 200) {
-      final data = jsonDecode(res.body);
-      setState(() {
-        responseText = data["text"] ?? "No response";
-      });
-    } else {
-      setState(() {
-        responseText = "Error: ${res.body}";
-      });
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text("Cohere Chat")),
-      body: Padding(
-        padding: EdgeInsets.all(16),
-        child: Column(
-          children: [
-            Expanded(child: SingleChildScrollView(child: Text(responseText))),
-            TextField(controller: _controller),
-            ElevatedButton(
-              onPressed: () {
-                sendMessage(_controller.text);
-              },
-              child: Text("Send"),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-/*import 'package:flutter/material.dart';
-import 'package:vapi/vapi.dart';
-
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  await VapiClient.platformInitialized.future;
-  runApp(const MyApp());
-}
-
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Vapi Voice Demo',
-      home: const VoiceWidget(),
-    );
-  }
-}
-
-class VoiceWidget extends StatefulWidget {
-  const VoiceWidget({super.key});
-
-  @override
-  State<VoiceWidget> createState() => _VoiceWidgetState();
-}
-
-class _VoiceWidgetState extends State<VoiceWidget> {
-  late final VapiClient _vapi;
-  VapiCall? _activeCall;
-  bool _isLoading = false;
-
-  static const String _publicKey = 'YOUR_PUBLIC_API_KEY';
-  static const String _assistantId = 'YOUR_ASSISTANT_ID';
-
-  @override
-  void initState() {
-    super.initState();
-    _vapi = VapiClient(_publicKey);
-  }
-
-  @override
-  void dispose() {
-    _activeCall?.dispose();
-    super.dispose();
-  }
-
-  void _listenToCallEvents(VapiCall call) {
-    call.onEvent.listen((event) {
-      if (event.label == 'call-start') {
-        setState(() {
-          _isLoading = false;
-        });
-      } else if (event.label == 'call-end') {
-        setState(() {
-          _activeCall = null;
-          _isLoading = false;
-        });
-      } else if (event.label == 'message') {
-        debugPrint('Message event: ${event.value}');
-      }
-    });
-  }
-
-  Future<void> _toggleCall() async {
-    if (_isLoading) return;
-    setState(() {
-      _isLoading = true;
-    });
-
-    try {
-      if (_activeCall == null) {
-        final call = await _vapi.start(assistantId: _assistantId);
-        _activeCall = call;
-        _listenToCallEvents(call);
-      } else {
-        await _activeCall!.stop();
-      }
-    } catch (e) {
-      debugPrint('Error with Vapi call: $e');
-      setState(() {
-        _activeCall = null;
-        _isLoading = false;
-      });
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to start/stop call: $e')),
-        );
-      }
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final isCallActive = _activeCall != null;
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Vapi Voice Widget'),
-      ),
-      body: Center(
-        child: ElevatedButton(
-          onPressed: _toggleCall,
-          child: Text(_isLoading
-              ? 'Loading...'
-              : (isCallActive ? 'End Call' : 'Start Call')),
-        ),
-      ),
-    );
-  }
-}*/
-
-/*import 'package:flutter/material.dart';
-
-class ChatPage extends StatefulWidget {
-  const ChatPage({Key? key}) : super(key: key);
-
-  @override
-  State<ChatPage> createState() => _ChatPageState();
-}
-
-class _ChatPageState extends State<ChatPage> {
+class _LilEmPageState extends State<LilEmPage> {
   final TextEditingController _controller = TextEditingController();
   String _response = '';
   bool _loading = false;
 
-  void _sendMessage() async {
-    final input = _controller.text.trim();
-    if (input.isEmpty) return;
+  Future<void> sendMessage(String message) async {
+    final apiKey = dotenv.env['COHERE_API_KEY'];
+    final baseUrl = dotenv.env['COHERE_BASE_URL'];
+
+    if (apiKey == null || baseUrl == null) {
+      setState(() {
+        _response = "❌ Missing COHERE_API_KEY or COHERE_BASE_URL in .env";
+      });
+      return;
+    }
 
     setState(() {
       _loading = true;
       _response = '';
     });
 
-    await Future.delayed(const Duration(seconds: 1));
+    try {
+      final res = await http.post(
+        Uri.parse(baseUrl),
+        headers: {
+          "Authorization": "Bearer $apiKey",
+          "Content-Type": "application/json",
+        },
+        body: jsonEncode({
+          "model": "command-r-plus",
+          "message": message,
+        }),
+      );
 
-    setState(() {
-      _response = 'Echo from ChatGPT: $input';
-      _loading = false;
-      _controller.clear();
-    });
+      if (res.statusCode == 200) {
+        final data = jsonDecode(res.body);
+        setState(() {
+          _response = data["text"] ?? "⚠️ No response received.";
+        });
+      } else {
+        setState(() {
+          _response = "❌ Error: ${res.body}";
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _response = "⚠️ Exception: $e";
+      });
+    } finally {
+      setState(() {
+        _loading = false;
+      });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    const Color primaryColor = Color(0xFF4E9975);
+
     return Scaffold(
       backgroundColor: const Color(0xFFF5F6FA),
       appBar: AppBar(
-        backgroundColor: const Color(0xFF4E9975),
-        title: const Text('GPT Chat', style: TextStyle(color: Colors.white)),
+        backgroundColor: primaryColor,
+        title: const Text("Lil' Em + Cohere Chat", style: TextStyle(color: Colors.white)),
         centerTitle: true,
         elevation: 4,
       ),
       body: Padding(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.all(20),
         child: Column(
           children: [
+            // Top section: Header
             Container(
-              alignment: Alignment.centerLeft,
-              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+              padding: const EdgeInsets.all(20),
+              width: double.infinity,
               decoration: BoxDecoration(
-                color: const Color(0xFFEDF2F7),
-                borderRadius: BorderRadius.circular(16),
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 10,
+                    offset: const Offset(0, 5),
+                  ),
+                ],
               ),
               child: const Text(
-                'Ask something:',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFF2D3748),
-                ),
+                "Lil' Em Page (Desktop)",
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
               ),
             ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: _controller,
-              onSubmitted: (_) => _sendMessage(),
-              textInputAction: TextInputAction.send,
-              style: const TextStyle(fontSize: 16),
-              decoration: InputDecoration(
-                hintText: 'Type your question...',
-                hintStyle: const TextStyle(color: Colors.grey),
-                filled: true,
-                fillColor: Colors.white,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  borderSide: BorderSide.none,
-                ),
-                suffixIcon: IconButton(
-                  icon: const Icon(Icons.send, color: Color(0xFF4E9975)),
-                  onPressed: _sendMessage,
-                ),
+
+            const SizedBox(height: 24),
+
+            // Input Section
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 10,
+                    offset: const Offset(0, 5),
+                  ),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    "Enter Prompt",
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: primaryColor,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: _controller,
+                    textInputAction: TextInputAction.send,
+                    onSubmitted: (value) {
+                      if (value.trim().isNotEmpty) {
+                        sendMessage(value.trim());
+                      }
+                    },
+                    decoration: InputDecoration(
+                      hintText: "Type your message...",
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: BorderSide.none,
+                      ),
+                      fillColor: const Color(0xFFF0F2F5),
+                      filled: true,
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 14,
+                      ),
+                      suffixIcon: IconButton(
+                        icon: const Icon(Icons.send, color: primaryColor),
+                        onPressed: () {
+                          if (_controller.text.trim().isNotEmpty) {
+                            sendMessage(_controller.text.trim());
+                          }
+                        },
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: 32),
+
+            const SizedBox(height: 24),
+
+            // Response Section
             Expanded(
               child: Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: BorderRadius.circular(20),
                   boxShadow: [
                     BoxShadow(
                       color: Colors.black.withOpacity(0.05),
-                      blurRadius: 12,
-                      offset: const Offset(0, 6),
+                      blurRadius: 10,
+                      offset: const Offset(0, 5),
                     ),
                   ],
                 ),
                 child: _loading
                     ? const Center(
-                  child: CircularProgressIndicator(
-                    color: Color(0xFF4E9975),
+                  child: CircularProgressIndicator(color: primaryColor),
+                )
+                    : _response.isEmpty
+                    ? const Center(
+                  child: Text(
+                    "Response will appear here.",
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Colors.grey,
+                    ),
                   ),
                 )
-                    : _response.isNotEmpty
-                    ? Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Response:',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF4E9975),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      _response,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        height: 1.5,
-                        color: Color(0xFF2D3748),
-                      ),
-                    ),
-                  ],
-                )
-                    : const Center(
+                    : SingleChildScrollView(
                   child: Text(
-                    'Your response will appear here.',
-                    style: TextStyle(
-                      color: Colors.grey,
+                    _response,
+                    style: const TextStyle(
                       fontSize: 16,
+                      height: 1.5,
+                      color: Colors.black87,
                     ),
                   ),
                 ),
@@ -328,4 +214,4 @@ class _ChatPageState extends State<ChatPage> {
       ),
     );
   }
-}*/
+}
