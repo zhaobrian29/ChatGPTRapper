@@ -20,11 +20,7 @@ class EnlistingPage extends StatelessWidget {
                 width: double.infinity,
                 color: Colors.grey[200],
                 child: Center(
-                  child: Icon(
-                    Icons.image,
-                    size: 100,
-                    color: Colors.grey[400],
-                  ),
+                  child: Image.asset('assets/ChatGPTRapper_Onboarding_Header_Image_Asset.png'),
                 ),
               ),
             ),
@@ -61,7 +57,7 @@ class EnlistingPage extends StatelessWidget {
                     ),
                     const SizedBox(height: 16),
                     Text(
-                      'Development of vocal and singing skills, such as that of Logic\'s rap abilities, is swiftly tailored to you through the technological advances of GPT Rapper',
+                      'Develop vocal and singing skills, such as to the extent of that of Logic\'s rap abilities, through technological capabilities',
                       textAlign: TextAlign.center,
                       style: const TextStyle(
                         fontSize: 16,
