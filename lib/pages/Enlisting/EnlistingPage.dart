@@ -3,6 +3,11 @@ import 'package:flutter/material.dart';
 class EnlistingPage extends StatelessWidget {
   const EnlistingPage({Key? key}) : super(key: key);
 
+  static const Color primaryColor = Color(0xFF4E9975);
+  static const Color lightTextColor = Colors.white;
+  static const Color buttonTextColor = Colors.white;
+  static const Color outlineButtonColor = Colors.white70;
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -29,14 +34,14 @@ class EnlistingPage extends StatelessWidget {
                 width: double.infinity,
                 padding: const EdgeInsets.symmetric(horizontal: 28.0, vertical: 32),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF8F9FA),
+                  color: primaryColor,
                   borderRadius: const BorderRadius.only(
                     topLeft: Radius.circular(24),
                     topRight: Radius.circular(24),
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
+                      color: Colors.black.withOpacity(0.1),
                       blurRadius: 10,
                       offset: const Offset(0, -2),
                     ),
@@ -48,20 +53,20 @@ class EnlistingPage extends StatelessWidget {
                     Text(
                       'GPT: Greatest Performance Trailblazer',
                       textAlign: TextAlign.center,
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.bold,
-                        color: Colors.black87,
+                        color: lightTextColor,
                       ),
                     ),
                     const SizedBox(height: 16),
                     Text(
                       'Development of vocal and singing skills, such as that of Logic\'s rap abilities, is swiftly tailored to you through the technological advances of GPT Rapper',
                       textAlign: TextAlign.center,
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize: 16,
                         height: 1.5,
-                        color: Colors.grey[800],
+                        color: lightTextColor,
                       ),
                     ),
                     const Spacer(),
@@ -69,6 +74,8 @@ class EnlistingPage extends StatelessWidget {
                       width: double.infinity,
                       child: ElevatedButton(
                         style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.white,
+                          foregroundColor: primaryColor,
                           padding: const EdgeInsets.symmetric(vertical: 16),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
@@ -89,11 +96,12 @@ class EnlistingPage extends StatelessWidget {
                       width: double.infinity,
                       child: OutlinedButton(
                         style: OutlinedButton.styleFrom(
+                          foregroundColor: outlineButtonColor,
+                          side: BorderSide(color: outlineButtonColor),
                           padding: const EdgeInsets.symmetric(vertical: 16),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
-                          side: BorderSide(color: Colors.grey.shade400),
                           textStyle: const TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.w600,
