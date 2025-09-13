@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
+import 'LilEm.dart';
 
-class EnlistingPage extends StatelessWidget {
-  const EnlistingPage({Key? key}) : super(key: key);
+class EnlisteningPage extends StatelessWidget {
+  EnlisteningPage({Key? key}) : super(key: key);
 
   static const Color primaryColor = Color(0xFF4E9975);
   static const Color lightTextColor = Colors.white;
-  static const Color buttonTextColor = Colors.white;
-  static const Color outlineButtonColor = Colors.white70;
 
   @override
   Widget build(BuildContext context) {
@@ -82,7 +81,10 @@ class EnlistingPage extends StatelessWidget {
                           ),
                         ),
                         onPressed: () {
-                          Navigator.pushNamed(context, '/Enlist');
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (context) => const LilEmPage()),
+                          );
                         },
                         child: const Text('Enlist'),
                       ),
@@ -92,8 +94,8 @@ class EnlistingPage extends StatelessWidget {
                       width: double.infinity,
                       child: OutlinedButton(
                         style: OutlinedButton.styleFrom(
-                          foregroundColor: outlineButtonColor,
-                          side: BorderSide(color: outlineButtonColor),
+                          foregroundColor: Colors.white,
+                          side: const BorderSide(color: Colors.white70),
                           padding: const EdgeInsets.symmetric(vertical: 16),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
@@ -104,7 +106,10 @@ class EnlistingPage extends StatelessWidget {
                           ),
                         ),
                         onPressed: () {
-                          Navigator.pushNamed(context, '/signin');
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (context) => const SignInPage()),
+                          );
                         },
                         child: const Text('Sign In'),
                       ),
@@ -116,6 +121,18 @@ class EnlistingPage extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+class SignInPage extends StatelessWidget {
+  const SignInPage({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Sign In')),
+      body: const Center(child: Text('Sign In Page Placeholder')),
     );
   }
 }

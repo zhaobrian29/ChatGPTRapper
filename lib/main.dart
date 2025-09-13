@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'pages/Enlisting/Enlistening.dart';
+import 'pages/Enlistening.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 void main() async {
@@ -38,7 +38,7 @@ class MyApp extends StatelessWidget {
         // tested with just a hot reload.
         colorScheme: ColorScheme.fromSeed(seedColor: Color(0xFF4E9975)),
       ),
-      home: const EnlistingPage(),
+      home: EnlisteningPage(),
     );
   }
 }

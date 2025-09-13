@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'dart:convert';
-import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
 class LilEmPage extends StatelessWidget {
+  const LilEmPage({Key? key}) : super(key: key);
+
   @override
   Widget build(BuildContext context) {
     return Center(child: Text('Lil\' Em'));
@@ -20,7 +21,7 @@ class _CohereChatPageState extends State<CohereChatPage> {
   String responseText = "";
 
   Future<void> sendMessage(String message) async {
-    const apiKey = "COHERE_API_KEY"; // if public put in .env file; if not stay cautious
+    const apiKey = "COHERE_API_KEY";
     final url = Uri.parse("COHERE_BASE_URL");
 
     final res = await http.post(
@@ -30,7 +31,7 @@ class _CohereChatPageState extends State<CohereChatPage> {
         "Content-Type": "application/json",
       },
       body: jsonEncode({
-        "model": "command-r-plus", // or the model you used in Playground
+        "model": "command-r-plus",
         "message": message,
       }),
     );
