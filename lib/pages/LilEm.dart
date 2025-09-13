@@ -7,10 +7,8 @@ import 'package:path_provider/path_provider.dart';
 import 'package:audioplayers/audioplayers.dart';
 
 class CambAiTTS {
-  final String apiKey;
+  final String apiKey=dotenv.env['CAMB_AI_API_KEY']??"";
   final AudioPlayer _audioPlayer = AudioPlayer();
-
-  CambAiTTS({required this.apiKey});
 
   Future<void> speak({
     required String text,
