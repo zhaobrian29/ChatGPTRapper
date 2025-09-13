@@ -11,28 +11,28 @@ class LilEmPage extends StatefulWidget {
 }
 
 class _LilEmPageState extends State<LilEmPage> {
-  final TextEditingController _controller = TextEditingController();
-  String _response = '';
-  bool _loading = false;
+  final TextEditingController _controller=TextEditingController();
+  String _response='';
+  bool _loading=false;
 
   Future<void> sendMessage(String message) async {
-    final apiKey = dotenv.env['COHERE_API_KEY'];
-    final baseUrl = dotenv.env['COHERE_BASE_URL'];
+    final apiKey=dotenv.env['COHERE_API_KEY'];
+    final baseUrl=dotenv.env['COHERE_BASE_URL'];
 
-    if (apiKey == null || baseUrl == null) {
+    if(apiKey==null||baseUrl==null) {
       setState(() {
-        _response = "❌ Missing COHERE_API_KEY or COHERE_BASE_URL in .env";
+        _response="Missing COHERE_API_KEY or COHERE_BASE_URL in .env; so please add it so as to get this part of the program to work";
       });
       return;
     }
 
     setState(() {
-      _loading = true;
-      _response = '';
+      _loading=true;
+      _response='';
     });
 
     try {
-      final res = await http.post(
+      final res=await http.post(
         Uri.parse(baseUrl),
         headers: {
           "Authorization": "Bearer $apiKey",
@@ -44,36 +44,36 @@ class _LilEmPageState extends State<LilEmPage> {
         }),
       );
 
-      if (res.statusCode == 200) {
-        final data = jsonDecode(res.body);
+      if(res.statusCode==200) {
+        final data=jsonDecode(res.body);
         setState(() {
-          _response = data["text"] ?? "⚠️ No response received.";
+          _response=data["text"] ?? "No response received. The number of unused credits for the trial key likely may have all been depleted.";
         });
       } else {
         setState(() {
-          _response = "❌ Error: ${res.body}";
+          _response="Error: ${res.body}";
         });
       }
     } catch (e) {
       setState(() {
-        _response = "⚠️ Exception: $e";
+        _response="Exception occ. $e";
       });
     } finally {
       setState(() {
-        _loading = false;
+        _loading=false;
       });
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    const Color primaryColor = Color(0xFF4E9975);
+    const Color primaryColor=Color(0xFF4E9975);
 
     return Scaffold(
       backgroundColor: const Color(0xFFF5F6FA),
       appBar: AppBar(
         backgroundColor: primaryColor,
-        title: const Text("Lil' Em + Cohere Chat", style: TextStyle(color: Colors.white)),
+        title: const Text("Lil' Em (aka LLM)", style: TextStyle(color: Colors.white)),
         centerTitle: true,
         elevation: 4,
       ),
@@ -81,7 +81,6 @@ class _LilEmPageState extends State<LilEmPage> {
         padding: const EdgeInsets.all(20),
         child: Column(
           children: [
-            // Top section: Header
             Container(
               padding: const EdgeInsets.all(20),
               width: double.infinity,
@@ -97,7 +96,7 @@ class _LilEmPageState extends State<LilEmPage> {
                 ],
               ),
               child: const Text(
-                "Lil' Em Page (Desktop)",
+                "A fun-style method of learning lyrics and rhymes alike!",
                 textAlign: TextAlign.center,
                 style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
               ),
@@ -105,7 +104,6 @@ class _LilEmPageState extends State<LilEmPage> {
 
             const SizedBox(height: 24),
 
-            // Input Section
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
@@ -123,7 +121,7 @@ class _LilEmPageState extends State<LilEmPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text(
-                    "Enter Prompt",
+                    "Enter Ideation Prompt for Lyrics",
                     style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
@@ -135,12 +133,12 @@ class _LilEmPageState extends State<LilEmPage> {
                     controller: _controller,
                     textInputAction: TextInputAction.send,
                     onSubmitted: (value) {
-                      if (value.trim().isNotEmpty) {
+                      if(value.trim().isNotEmpty) {
                         sendMessage(value.trim());
                       }
                     },
                     decoration: InputDecoration(
-                      hintText: "Type your message...",
+                      hintText: "Type your message . . .",
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(16),
                         borderSide: BorderSide.none,
@@ -152,9 +150,9 @@ class _LilEmPageState extends State<LilEmPage> {
                         vertical: 14,
                       ),
                       suffixIcon: IconButton(
-                        icon: const Icon(Icons.send, color: primaryColor),
+                        icon: const Icon(Icons.send,color: primaryColor),
                         onPressed: () {
-                          if (_controller.text.trim().isNotEmpty) {
+                          if(_controller.text.trim().isNotEmpty) {
                             sendMessage(_controller.text.trim());
                           }
                         },
@@ -179,7 +177,7 @@ class _LilEmPageState extends State<LilEmPage> {
                     BoxShadow(
                       color: Colors.black.withOpacity(0.05),
                       blurRadius: 10,
-                      offset: const Offset(0, 5),
+                      offset: const Offset(0,5),
                     ),
                   ],
                 ),
@@ -190,7 +188,7 @@ class _LilEmPageState extends State<LilEmPage> {
                     : _response.isEmpty
                     ? const Center(
                   child: Text(
-                    "Response will appear here.",
+                    "(Instructional a cappella music words will appear here)",
                     style: TextStyle(
                       fontSize: 16,
                       color: Colors.grey,
