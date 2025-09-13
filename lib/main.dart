@@ -1,8 +1,15 @@
 import 'package:flutter/material.dart';
 import 'pages/Enlisting/Enlistening.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
-void main() {
-  runApp(const MyApp());
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized(); // ensure Flutter is initialized
+  try {
+    await dotenv.load(fileName: ".env"); // load environment variables
+  } catch (e) {
+    throw Exception('Error loading .env file: $e'); // print error if any caught
+  }
+  runApp(const MyApp()); // runs the app
 }
 
 class MyApp extends StatelessWidget {
