@@ -1052,15 +1052,76 @@ class CambAiTTS {
       String? audioUrl;
       for (int i = 0; i < 20; i++) {
         await Future.delayed(const Duration(seconds: 3));
-        final pollUrl = Uri.parse("$baseUrl/$taskId");
+        final pollUrl = Uri.parse(
+          "${dotenv.env['CAMB_AI_BASE_URL'] ?? "https://client.camb.ai/apis/tts"}/$taskId",
+        );
 
-        final pollRes = await http.get(pollUrl, headers: {'x-api-key': apiKey});
-        if (pollRes.statusCode != 200) continue;
+        final pollRes = await http.get(
+          pollUrl,
+          headers: {'x-api-key': apiKey},
+        );
+
+        if (pollRes.statusCode != 200) {
+          print("Polling failed: ${pollRes.body}");
+          continue;
+        }
 
         final pollBody = jsonDecode(pollRes.body);
+        print("Polling response: $pollBody");
+
         if (pollBody['status'] == 'SUCCESS') {
-          audioUrl = pollBody['audio_url'];
-          break;
+          // Try to get audio_url first
+          if (pollBody['audio_url'] != null) {
+            audioUrl = pollBody['audio_url'] as String;
+            break;
+          }
+
+          if (pollBody['status'] == 'SUCCESS') {
+            print("✅ Full SUCCESS response: $pollBody");
+            if (pollBody['audio_url'] != null) {
+              audioUrl = pollBody['audio_url'] as String;
+              break;
+            } else if (pollBody['payload'] != null) {
+              print("📦 Payload found: ${pollBody['payload']}");
+            }
+          }
+
+
+          // If no audio_url, maybe we have to fetch using run_id
+          if (pollBody['run_id'] != null) {
+            final runId = pollBody['run_id'].toString();
+            final audioFetchUrl = Uri.parse(
+              "${dotenv.env['CAMB_AI_BASE_URL'] ?? "https://client.camb.ai/apis/tts"}/$taskId/audio",
+            );
+
+            final audioRes = await http.get(
+              audioFetchUrl,
+              headers: {'x-api-key': apiKey},
+            );
+
+            if (audioRes.statusCode == 200) {
+              try {
+                final audioJson = jsonDecode(audioRes.body);
+                if (audioJson['audio_url'] != null) {
+                  audioUrl = audioJson['audio_url'] as String;
+                  break;
+                }
+              } catch (_) {
+                // If it's not JSON, assume raw MP3 bytes
+                final dir = await getTemporaryDirectory();
+                final file = File('${dir.path}/CambAItextToSpeech.mp3');
+                await file.writeAsBytes(audioRes.bodyBytes);
+
+                await _audioPlayer.stop();
+                await _audioPlayer.setVolume(1.0); // ensure full volume
+                await _audioPlayer.play(DeviceFileSource(file.path));
+                print("🎵 Playing directly from binary audio response");
+                return;
+              }
+            } else {
+              print("Failed to fetch audio: ${audioRes.body}");
+            }
+          }
         }
       }
 
