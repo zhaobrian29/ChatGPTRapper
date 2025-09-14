@@ -1,3 +1,384 @@
+import 'package:flutter/material.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'dart:io';
+import 'package:path_provider/path_provider.dart';
+import 'package:audioplayers/audioplayers.dart';
+
+// 🔹 CambAiTTS class
+class CambAiTTS {
+  final String apiKey = dotenv.env['CAMB_AI_API_KEY'] ?? "";
+  final String baseUrl =
+      dotenv.env['CAMB_AI_BASE_URL'] ?? "https://client.camb.ai/apis/tts";
+  final AudioPlayer _audioPlayer = AudioPlayer();
+
+  String? selectedVoiceId;
+  int? languageId = 1;
+
+  /// Fetch voices and pick Alice, David, or fallback
+  Future<void> initVoice() async {
+    if (apiKey.isEmpty) {
+      print("❌ Missing CAMB_AI_API_KEY in .env");
+      return;
+    }
+
+    final url = Uri.parse("$baseUrl/list_voices");
+    try {
+      final res = await http.get(url, headers: {
+        "x-api-key": apiKey,
+      });
+
+      if (res.statusCode == 200) {
+        final data = jsonDecode(res.body);
+
+        if (data["voices"] != null && data["voices"].isNotEmpty) {
+          final voices = List<Map<String, dynamic>>.from(data["voices"]);
+
+          // Try Alice
+          final alice = voices.firstWhere(
+                (v) => v["name"].toString().toLowerCase().contains("alice"),
+            orElse: () => {},
+          );
+
+          // Try David
+          final david = voices.firstWhere(
+                (v) => v["name"].toString().toLowerCase().contains("david"),
+            orElse: () => {},
+          );
+
+          if (alice.isNotEmpty) {
+            selectedVoiceId = alice["id"].toString();
+            print("✅ Using Alice’s voice: $selectedVoiceId");
+          } else if (david.isNotEmpty) {
+            selectedVoiceId = david["id"].toString();
+            print("✅ Using David’s voice: $selectedVoiceId");
+          } else {
+            selectedVoiceId = voices.first["id"].toString();
+            print("⚠️ Neither Alice nor David found, fallback: $selectedVoiceId");
+          }
+        }
+      } else {
+        print("❌ Failed to fetch voices: ${res.body}");
+      }
+    } catch (e) {
+      print("Exception fetching voices: $e");
+    }
+  }
+
+  Future<void> speak(String text) async {
+    if (apiKey.isEmpty) {
+      print("❌ Missing CAMB_AI_API_KEY in .env");
+      return;
+    }
+    if (selectedVoiceId == null) {
+      print("⚠️ No voice selected, calling initVoice()");
+      await initVoice();
+      if (selectedVoiceId == null) {
+        print("❌ Still no voice available.");
+        return;
+      }
+    }
+
+    final url = Uri.parse("$baseUrl/tts");
+    try {
+      final response = await http.post(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': apiKey,
+        },
+        body: jsonEncode({
+          "text": text,
+          "voice_id": selectedVoiceId,
+          "language": languageId,
+        }),
+      );
+
+      print("CambAI status: ${response.statusCode}");
+      if (response.statusCode != 200) {
+        print("❌ CambAI error: ${response.body}");
+        return;
+      }
+
+      final body = jsonDecode(response.body);
+      final taskId = body['task_id'];
+      if (taskId == null) {
+        print("❌ No task_id in response: $body");
+        return;
+      }
+
+      print("Task started: $taskId");
+
+      String? audioUrl;
+      for (int i = 0; i < 20; i++) {
+        await Future.delayed(const Duration(seconds: 3));
+        final pollUrl = Uri.parse("$baseUrl/tts/$taskId");
+
+        final pollRes = await http.get(
+          pollUrl,
+          headers: {"x-api-key": apiKey},
+        );
+
+        if (pollRes.statusCode != 200) {
+          print("Polling failed: ${pollRes.body}");
+          continue;
+        }
+
+        final pollBody = jsonDecode(pollRes.body);
+        print("Polling status: ${pollBody['status']}");
+        print("Poll body: $pollBody");
+
+        if (pollBody['status'] == 'SUCCESS' && pollBody['audio_url'] != null) {
+          audioUrl = pollBody['audio_url'];
+          break;
+        }
+      }
+
+      if (audioUrl == null) {
+        print("❌ Audio not ready after polling.");
+        return;
+      }
+
+      final audioRes = await http.get(Uri.parse(audioUrl));
+      if (audioRes.statusCode != 200) {
+        print("❌ Failed to download audio: ${audioRes.body}");
+        return;
+      }
+
+      final dir = await getTemporaryDirectory();
+      final file = File('${dir.path}/CambAItextToSpeech.mp3');
+      await file.writeAsBytes(audioRes.bodyBytes);
+
+      await _audioPlayer.stop();
+      await _audioPlayer.setReleaseMode(ReleaseMode.stop);
+      await _audioPlayer.play(DeviceFileSource(file.path));
+
+      print("🎵 Playing voice $selectedVoiceId from file: ${file.path}");
+    } catch (e) {
+      print("CambAI Exception: $e");
+    }
+  }
+}
+
+class LilEmPage extends StatefulWidget {
+  const LilEmPage({Key? key}) : super(key: key);
+
+  @override
+  State<LilEmPage> createState() => _LilEmPageState();
+}
+
+class _LilEmPageState extends State<LilEmPage> {
+  final TextEditingController _controller = TextEditingController();
+  String _response = '';
+  bool _loading = false;
+  final CambAiTTS _tts = CambAiTTS();
+
+  Future<void> sendMessage(String message) async {
+    final apiKey = dotenv.env['COHERE_API_KEY'];
+    final baseUrl = dotenv.env['COHERE_BASE_URL'];
+
+    if (apiKey == null || baseUrl == null) {
+      setState(() {
+        _response = "Missing COHERE_API_KEY or COHERE_BASE_URL in .env";
+      });
+      return;
+    }
+
+    setState(() {
+      _loading = true;
+      _response = '';
+    });
+
+    try {
+      final res = await http.post(
+        Uri.parse(baseUrl),
+        headers: {
+          "Authorization": "Bearer $apiKey",
+          "Content-Type": "application/json",
+        },
+        body: jsonEncode({
+          "model": "command-r-plus",
+          "message": message,
+        }),
+      );
+
+      if (res.statusCode == 200) {
+        final data = jsonDecode(res.body);
+        final output = data["text"] ??
+            "No response received. Trial key credits may be depleted.";
+        setState(() {
+          _response = output;
+        });
+
+        await _tts.speak(output); // 🔹 Speak after displaying text
+      } else {
+        setState(() {
+          _response = "Error: ${res.body}";
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _response = "Exception: $e";
+      });
+    } finally {
+      setState(() {
+        _loading = false;
+      });
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _tts.initVoice(); // 🔹 prepare voice on load
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    const Color primaryColor = Color(0xFF4E9975);
+
+    return Scaffold(
+      backgroundColor: const Color(0xFFF5F6FA),
+      appBar: AppBar(
+        backgroundColor: primaryColor,
+        title: const Text("Lil' Em (aka LLM)",
+            style: TextStyle(color: Colors.white)),
+        centerTitle: true,
+        elevation: 4,
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(20),
+              width: double.infinity,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 10,
+                    offset: const Offset(0, 5),
+                  ),
+                ],
+              ),
+              child: const Text(
+                "A fun-style method of learning lyrics and rhymes alike!",
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+              ),
+            ),
+            const SizedBox(height: 24),
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 10,
+                    offset: const Offset(0, 5),
+                  ),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    "Enter Ideation Prompt for Lyrics",
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: primaryColor,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: _controller,
+                    textInputAction: TextInputAction.send,
+                    onSubmitted: (value) {
+                      if (value.trim().isNotEmpty) {
+                        sendMessage(value.trim());
+                      }
+                    },
+                    decoration: InputDecoration(
+                      hintText: "Type your message . . .",
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: BorderSide.none,
+                      ),
+                      fillColor: const Color(0xFFF0F2F5),
+                      filled: true,
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 14,
+                      ),
+                      suffixIcon: IconButton(
+                        icon: const Icon(Icons.send, color: primaryColor),
+                        onPressed: () {
+                          if (_controller.text.trim().isNotEmpty) {
+                            sendMessage(_controller.text.trim());
+                          }
+                        },
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
+            Expanded(
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.05),
+                      blurRadius: 10,
+                      offset: const Offset(0, 5),
+                    ),
+                  ],
+                ),
+                child: _loading
+                    ? const Center(
+                  child: CircularProgressIndicator(color: primaryColor),
+                )
+                    : _response.isEmpty
+                    ? const Center(
+                  child: Text(
+                    "(Instructional a cappella music words will appear here)",
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Colors.grey,
+                    ),
+                  ),
+                )
+                    : SingleChildScrollView(
+                  child: Text(
+                    _response,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      height: 1.5,
+                      color: Colors.black87,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 /*import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
@@ -608,7 +989,7 @@ class _LilEmPageState extends State<LilEmPage> {
   }
 }*/
 
-import 'package:flutter/material.dart';
+/* REMEMBER TO KEEP THIS ONE COMMENTED OUT BLOCK   import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -931,7 +1312,7 @@ class _LilEmPageState extends State<LilEmPage> {
       ),
     );
   }
-}
+}*/
 
 /*import 'package:flutter/material.dart';
 import 'dart:convert';
