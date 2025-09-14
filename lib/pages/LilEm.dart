@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+/*import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -377,7 +377,7 @@ class _LilEmPageState extends State<LilEmPage> {
       ),
     );
   }
-}
+}*/
 
 /*import 'package:flutter/material.dart';
 import 'dart:convert';
@@ -989,7 +989,7 @@ class _LilEmPageState extends State<LilEmPage> {
   }
 }*/
 
-/* REMEMBER TO KEEP THIS ONE COMMENTED OUT BLOCK   import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -999,27 +999,28 @@ import 'package:audioplayers/audioplayers.dart';
 
 class CambAiTTS {
   final String apiKey = dotenv.env['CAMB_AI_API_KEY'] ?? "";
+  final String baseUrl =
+      dotenv.env['CAMB_BASE_URL'] ?? "https://client.camb.ai/apis/tts";
   final AudioPlayer _audioPlayer = AudioPlayer();
-  int? aliceVoiceId = 201;
-  int? languageId = 1;
+
+  final int aliceVoiceId = 20305; // default Alice voice
+  final int languageId = 1; // English
+
+  CambAiTTS() {
+    // Make sure audio plays loudly and doesn’t cut off
+    _audioPlayer.setReleaseMode(ReleaseMode.stop);
+    _audioPlayer.setVolume(1.0); // 🔊 max volume
+  }
 
   Future<void> speak(String text) async {
     if (apiKey.isEmpty) {
-      print("Missing CAMB_AI_API_KEY in .env");
+      print("⚠️ Missing CAMB_API_KEY in .env");
       return;
     }
-    if (aliceVoiceId == null || languageId == null) {
-      print("No valid voice ID available.");
-      return;
-    }
-
-    final url = Uri.parse(
-      dotenv.env['CAMB_AI_BASE_URL'] ?? "https://client.camb.ai/apis/tts",
-    );
 
     try {
       final response = await http.post(
-        url,
+        Uri.parse(baseUrl),
         headers: {
           'Content-Type': 'application/json',
           'x-api-key': apiKey,
@@ -1032,60 +1033,46 @@ class CambAiTTS {
       );
 
       print("CambAI status: ${response.statusCode}");
-      print("CambAI content-type: ${response.headers['content-type']}");
 
       if (response.statusCode != 200) {
-        print("CambAI error: ${response.body}");
+        print("❌ CambAI error: ${response.body}");
         return;
       }
 
       final body = jsonDecode(response.body);
       final taskId = body['task_id'];
       if (taskId == null) {
-        print("No task_id in response: $body");
+        print("⚠️ No task_id in response: $body");
         return;
       }
 
-      print("Task started: $taskId");
+      print("🟢 Task started: $taskId");
 
+      // Poll CambAI for audio readiness
       String? audioUrl;
       for (int i = 0; i < 20; i++) {
         await Future.delayed(const Duration(seconds: 3));
-        final pollUrl = Uri.parse(
-          "${dotenv.env['CAMB_AI_BASE_URL'] ?? "https://client.camb.ai/apis/tts"}/$taskId",
-        );
+        final pollUrl = Uri.parse("$baseUrl/$taskId");
 
-        final pollRes = await http.get(
-          pollUrl,
-          headers: {'x-api-key': apiKey},
-        );
-
-        if (pollRes.statusCode != 200) {
-          print("Polling failed: ${pollRes.body}");
-          continue;
-        }
+        final pollRes = await http.get(pollUrl, headers: {'x-api-key': apiKey});
+        if (pollRes.statusCode != 200) continue;
 
         final pollBody = jsonDecode(pollRes.body);
-        print("Full poll response: $pollBody");
-
         if (pollBody['status'] == 'SUCCESS') {
-          if (pollBody['audio_url'] != null) {
-            audioUrl = pollBody['audio_url'];
-            break;
-          } else if (pollBody['payload'] != null) {
-            print("Payload contents: ${pollBody['payload']}");
-          }
+          audioUrl = pollBody['audio_url'];
+          break;
         }
       }
 
       if (audioUrl == null) {
-        print("Audio not ready after polling.");
+        print("⚠️ Audio not ready after polling.");
         return;
       }
 
+      // Download audio file
       final audioRes = await http.get(Uri.parse(audioUrl));
       if (audioRes.statusCode != 200) {
-        print("Failed to download audio: ${audioRes.body}");
+        print("❌ Failed to download audio: ${audioRes.body}");
         return;
       }
 
@@ -1093,11 +1080,16 @@ class CambAiTTS {
       final file = File('${dir.path}/CambAItextToSpeech.mp3');
       await file.writeAsBytes(audioRes.bodyBytes);
 
+      // Play audio at full volume
       await _audioPlayer.stop();
-      await _audioPlayer.play(DeviceFileSource(file.path));
-      print("🎵 Playing Alice’s voice...");
+      await _audioPlayer.play(
+        DeviceFileSource(file.path),
+        volume: 1.0,
+      );
+
+      print("🎵 Playing Alice’s voice at full volume...");
     } catch (e) {
-      print("CambAI Exception: $e");
+      print("⚠️ CambAI Exception: $e");
     }
   }
 }
@@ -1152,6 +1144,7 @@ class _LilEmPageState extends State<LilEmPage> {
           _response = output;
         });
 
+        // 🔊 Speak output immediately
         await _tts.speak(output);
       } else {
         setState(() {
@@ -1312,7 +1305,7 @@ class _LilEmPageState extends State<LilEmPage> {
       ),
     );
   }
-}*/
+}
 
 /*import 'package:flutter/material.dart';
 import 'dart:convert';
