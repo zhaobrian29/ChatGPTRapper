@@ -1003,18 +1003,17 @@ class CambAiTTS {
       dotenv.env['CAMB_BASE_URL'] ?? "https://client.camb.ai/apis/tts";
   final AudioPlayer _audioPlayer = AudioPlayer();
 
-  final int aliceVoiceId = 20305; // default Alice voice
-  final int languageId = 1; // English
+  final int aliceVoiceId = 20305;
+  final int languageId = 1;
 
   CambAiTTS() {
-    // Make sure audio plays loudly and doesn’t cut off
     _audioPlayer.setReleaseMode(ReleaseMode.stop);
-    _audioPlayer.setVolume(1.0); // 🔊 max volume
+    _audioPlayer.setVolume(1.0);
   }
 
   Future<void> speak(String text) async {
     if (apiKey.isEmpty) {
-      print("⚠️ Missing CAMB_API_KEY in .env");
+      print("Missing CAMB_API_KEY in .env");
       return;
     }
 
@@ -1035,105 +1034,72 @@ class CambAiTTS {
       print("CambAI status: ${response.statusCode}");
 
       if (response.statusCode != 200) {
-        print("❌ CambAI error: ${response.body}");
+        print("CambAI error: ${response.body}");
         return;
       }
 
       final body = jsonDecode(response.body);
       final taskId = body['task_id'];
       if (taskId == null) {
-        print("⚠️ No task_id in response: $body");
+        print("No task_id in response: $body");
         return;
       }
 
-      print("🟢 Task started: $taskId");
+      print("Task started: $taskId");
 
-      // Poll CambAI for audio readiness
       String? audioUrl;
       for (int i = 0; i < 20; i++) {
         await Future.delayed(const Duration(seconds: 3));
-        final pollUrl = Uri.parse(
-          "${dotenv.env['CAMB_AI_BASE_URL'] ?? "https://client.camb.ai/apis/tts"}/$taskId",
-        );
+        final pollUrl = Uri.parse("$baseUrl/$taskId");
 
-        final pollRes = await http.get(
-          pollUrl,
-          headers: {'x-api-key': apiKey},
-        );
-
-        if (pollRes.statusCode != 200) {
-          print("Polling failed: ${pollRes.body}");
-          continue;
-        }
+        final pollRes = await http.get(pollUrl, headers: {'x-api-key': apiKey});
+        if (pollRes.statusCode != 200) continue;
 
         final pollBody = jsonDecode(pollRes.body);
         print("Polling response: $pollBody");
 
         if (pollBody['status'] == 'SUCCESS') {
-          // Try to get audio_url first
           if (pollBody['audio_url'] != null) {
-            audioUrl = pollBody['audio_url'] as String;
+            audioUrl = pollBody['audio_url'];
             break;
           }
 
-          if (pollBody['status'] == 'SUCCESS') {
-            print("✅ Full SUCCESS response: $pollBody");
-            if (pollBody['audio_url'] != null) {
-              audioUrl = pollBody['audio_url'] as String;
-              break;
-            } else if (pollBody['payload'] != null) {
-              print("📦 Payload found: ${pollBody['payload']}");
-            }
-          }
+          final runId = pollBody['run_id'];
+          if (runId != null) {
+            final runUrl = Uri.parse("$baseUrl/runs/$runId");
+            final runRes =
+            await http.get(runUrl, headers: {'x-api-key': apiKey});
 
-
-          // If no audio_url, maybe we have to fetch using run_id
-          if (pollBody['run_id'] != null) {
-            final runId = pollBody['run_id'].toString();
-            final audioFetchUrl = Uri.parse(
-              "${dotenv.env['CAMB_AI_BASE_URL'] ?? "https://client.camb.ai/apis/tts"}/$taskId/audio",
-            );
-
-            final audioRes = await http.get(
-              audioFetchUrl,
-              headers: {'x-api-key': apiKey},
-            );
-
-            if (audioRes.statusCode == 200) {
-              try {
-                final audioJson = jsonDecode(audioRes.body);
-                if (audioJson['audio_url'] != null) {
-                  audioUrl = audioJson['audio_url'] as String;
-                  break;
-                }
-              } catch (_) {
-                // If it's not JSON, assume raw MP3 bytes
+            if (runRes.statusCode == 200) {
+              final runBody = jsonDecode(runRes.body);
+              if (runBody['audio_url'] != null) {
+                audioUrl = runBody['audio_url'];
+                break;
+              }
+              if (runBody['payload'] != null) {
+                final bytes = base64Decode(runBody['payload']);
                 final dir = await getTemporaryDirectory();
                 final file = File('${dir.path}/CambAItextToSpeech.mp3');
-                await file.writeAsBytes(audioRes.bodyBytes);
+                await file.writeAsBytes(bytes);
 
                 await _audioPlayer.stop();
-                await _audioPlayer.setVolume(1.0); // ensure full volume
                 await _audioPlayer.play(DeviceFileSource(file.path));
-                print("🎵 Playing directly from binary audio response");
+                print("🎵 Playing directly from base64 payload");
                 return;
               }
-            } else {
-              print("Failed to fetch audio: ${audioRes.body}");
             }
           }
         }
       }
 
       if (audioUrl == null) {
-        print("⚠️ Audio not ready after polling.");
+        print("Audio not ready after polling.");
         return;
       }
 
-      // Download audio file
       final audioRes = await http.get(Uri.parse(audioUrl));
       if (audioRes.statusCode != 200) {
-        print("❌ Failed to download audio: ${audioRes.body}");
+        print("Failed to download audio: ${audioRes.body}");
         return;
       }
 
@@ -1141,16 +1107,12 @@ class CambAiTTS {
       final file = File('${dir.path}/CambAItextToSpeech.mp3');
       await file.writeAsBytes(audioRes.bodyBytes);
 
-      // Play audio at full volume
       await _audioPlayer.stop();
-      await _audioPlayer.play(
-        DeviceFileSource(file.path),
-        volume: 1.0,
-      );
+      await _audioPlayer.play(DeviceFileSource(file.path), volume: 1.0);
 
-      print("🎵 Playing Alice’s voice at full volume...");
+      print("Playing Alice’s voice at full volume...");
     } catch (e) {
-      print("⚠️ CambAI Exception: $e");
+      print("CambAI Exception: $e");
     }
   }
 }
@@ -1205,7 +1167,6 @@ class _LilEmPageState extends State<LilEmPage> {
           _response = output;
         });
 
-        // 🔊 Speak output immediately
         await _tts.speak(output);
       } else {
         setState(() {
