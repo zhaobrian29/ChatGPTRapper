@@ -1162,7 +1162,7 @@ class _LilEmPageState extends State<LilEmPage> {
       if (res.statusCode == 200) {
         final data = jsonDecode(res.body);
         final output = data["text"] ??
-            "No response received. Trial key credits may be depleted.";
+            "No response received. Trial key credits of set/given API key may be depleted.";
         setState(() {
           _response = output;
         });
