@@ -1154,7 +1154,7 @@ class _LilEmPageState extends State<LilEmPage> {
           "Content-Type": "application/json",
         },
         body: jsonEncode({
-          "model": "command-r-plus",
+          "model": "command-r-plus-08-2024",
           "message": message,
         }),
       );
