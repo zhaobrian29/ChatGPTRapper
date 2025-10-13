@@ -996,8 +996,12 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 import 'package:audioplayers/audioplayers.dart';
+import 'package:volume_controller/volume_controller.dart';
 
 class CambAiTTS {
+  final controller = VolumeController.instance;
+  await controller.setVolume(0.5);
+  await controller.setVolume(0.5, showSystemUI: false);
   final String apiKey = dotenv.env['CAMB_AI_API_KEY'] ?? "";
   final String baseUrl =
       dotenv.env['CAMB_BASE_URL'] ?? "https://client.camb.ai/apis/tts";

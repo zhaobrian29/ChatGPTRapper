@@ -38,7 +38,7 @@ class MyApp extends StatelessWidget {
         // tested with just a hot reload.
         colorScheme: ColorScheme.fromSeed(seedColor: Color(0xFF4E9975)),
       ),
-      home: EnlisteningPage(),
+      home: LilEmPage(),
     );
   }
 }
