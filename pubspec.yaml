@@ -30,10 +30,6 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  vapi:
-    git:
-      url: https://github.com/VapiAI/client-sdk-flutter.git
-      ref: main
   volume_controller: ^2.0.3
   flutter_dotenv: ^5.1.0
   http: ^1.2.0
