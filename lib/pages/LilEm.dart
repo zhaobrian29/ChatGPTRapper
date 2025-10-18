@@ -998,10 +998,46 @@ import 'package:path_provider/path_provider.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:volume_controller/volume_controller.dart';
 
+class VolumeCheckExample extends StatefulWidget {
+  @override
+  State<VolumeCheckExample> createState() => _VolumeCheckExampleState();
+}
+
+class _VolumeCheckExampleState extends State<VolumeCheckExample> {
+  final _controller = VolumeController.instance;
+  double _currentVolume = 0.0;
+
+  @override
+  void initState() {
+    super.initState();
+    // initialize and get the current volume
+    _controller.listener((volume) {
+      setState(() => _currentVolume = volume);
+    });
+    _controller.getVolume().then((v) => setState(() => _currentVolume = v));
+  }
+
+  @override
+  void dispose() {
+    _controller.removeListener();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text('Volume Monitor')),
+      body: Center(
+        child: Text(
+          'Current volume: ${_currentVolume.toStringAsFixed(2)}',
+          style: const TextStyle(fontSize: 20),
+        ),
+      ),
+    );
+  }
+}
+
 class CambAiTTS {
-  final controller = VolumeController.instance;
-  await controller.setVolume(0.5);
-  await controller.setVolume(0.5, showSystemUI: false);
   final String apiKey = dotenv.env['CAMB_AI_API_KEY'] ?? "";
   final String baseUrl =
       dotenv.env['CAMB_BASE_URL'] ?? "https://client.camb.ai/apis/tts";
